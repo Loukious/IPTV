@@ -1,0 +1,80 @@
+name: Build PyQt App with Nuitka
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The new version number (e.g., 1.1)"
+        required: true
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      # Step 1: Checkout Repository
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set Version Variables from Input
+      - name: Set Version Variables
+        id: set_version
+        shell: pwsh
+        run: |
+          echo "version=${{ github.event.inputs.version }}" | Out-File -FilePath $Env:GITHUB_ENV -Append
+
+      # Step 3: Download and Extract libmpv-2.dll into /Libs
+      - name: Download and Extract mpv DLL
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20241125/mpv-dev-x86_64-v3-20241125-git-8464ba4.7z" -OutFile "mpv-dev.7z"
+          & 7z x mpv-dev.7z -o"mpv-dev"
+          New-Item -ItemType Directory -Path "Libs"
+          Copy-Item -Path "mpv-dev/libmpv-2.dll" -Destination "Libs/"
+
+      # Step 4: Set up Python and Install Dependencies
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Nuitka and Dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install nuitka
+
+      # Step 5: Build Application with Nuitka
+      - name: Build Application
+        shell: pwsh
+        run: |
+          $outputFile = "IPTV_v${{ env.version }}.exe"
+          python -m nuitka `
+          --windows-console-mode=disable `
+          --msvc=latest `
+          --assume-yes-for-downloads `
+          --onefile `
+          --plugin-enable=pyside6 `
+          --include-data-files="Libs/libmpv-2.dll=Libs/libmpv-2.dll" `
+          --output-filename=$outputFile `
+          --output-dir=dist IPTV.py
+
+      # Step 6: Create Git Tag
+      - name: Create Git Tag
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ env.version }}"
+          git push origin "v${{ env.version }}"
+
+      # Step 7: Create GitHub Release
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ env.version }}"
+          body: "Automated release for version v${{ env.version }}"
+          files: ./dist/IPTV_v${{ env.version }}.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
