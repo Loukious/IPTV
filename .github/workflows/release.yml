@@ -6,6 +6,9 @@ on:
       version:
         description: "The new version number (e.g., 1.1)"
         required: true
+      changelog:
+        description: "The changelog for this version"
+        required: true
 
 jobs:
   build-windows:
@@ -22,6 +25,7 @@ jobs:
         shell: pwsh
         run: |
           echo "version=${{ github.event.inputs.version }}" | Out-File -FilePath $Env:GITHUB_ENV -Append
+          echo "changelog=${{ github.event.inputs.changelog }}" | Out-File -FilePath $Env:GITHUB_ENV -Append
 
       # Step 3: Download and Extract libmpv-2.dll into /Libs
       - name: Download and Extract mpv DLL
@@ -74,7 +78,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "v${{ env.version }}"
-          body: "Automated release for version v${{ env.version }}"
+          body: ${{ env.changelog }}
           files: ./dist/IPTV_v${{ env.version }}.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
