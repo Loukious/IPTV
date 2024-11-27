@@ -153,7 +153,7 @@ class MainWindow(QMainWindow):
         player.play(stream["urls"][0])
         player.user_agent = stream["User-Agent"]
         player.title = channel["name"]
-        player.loop_playlist = "inf"
+        player.loop_file = "inf"
 
         try:
             player.wait_for_playback()
