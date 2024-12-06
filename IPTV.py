@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QScrollArea,
     QPushButton, QWidget, QMessageBox, QGridLayout, QGroupBox
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 # Check if running in a Nuitka onefile environment
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     dll_path = os.path.join(sys._MEIPASS, "Libs")  # Temporary extraction path
@@ -70,6 +70,13 @@ class Stream:
         except:
             return {"urls": [], "User-Agent": ""}
 
+    def testStream(self, url):
+        try:
+            response = requests.get(url, stream=True, timeout=5)
+            return response.status_code == 200
+        except requests.RequestException:
+            return False
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -115,11 +122,18 @@ class MainWindow(QMainWindow):
         scrollWidget = QWidget()
         scrollLayout = QVBoxLayout(scrollWidget)
 
+        self.channel_buttons = {}
         channels = self.stream.getChannels(category["id"])
         for channel in channels["data"]:
             button = QPushButton(channel["name"])
             button.clicked.connect(lambda checked, ch=channel: self.playChannel(ch))
             scrollLayout.addWidget(button)
+            self.channel_buttons[channel["id"]] = button
+
+            # Check if the channel has any available stream URLs, and set button color accordingly
+            stream = self.stream.getStream(channel["id"])
+            if not stream["urls"]:
+                button.setStyleSheet("background-color: red;")
 
         backButton = QPushButton("Back")
         backButton.clicked.connect(self.initUI)
@@ -134,6 +148,14 @@ class MainWindow(QMainWindow):
         self.channelGroupBox.setLayout(self.channelLayout)
 
         self.mainLayout.addWidget(self.channelGroupBox)
+
+        # Start a timer to check channel statuses every 10 seconds
+        self.statusTimer = QTimer(self)
+        self.statusTimer.timeout.connect(lambda: self.updateChannelStatuses(channels["data"]))
+        self.statusTimer.start(10000)  # 10 seconds
+
+        # Initial status check
+        self.updateChannelStatuses(channels["data"])
 
     def playChannel(self, channel):
         stream = self.stream.getStream(channel["id"])
@@ -159,6 +181,26 @@ class MainWindow(QMainWindow):
             player.wait_for_playback()
         finally:
             player.terminate()
+
+    def updateChannelStatuses(self, channels):
+        def test_channel(channel):
+            stream = self.stream.getStream(channel["id"])
+            if stream["urls"]:
+                url = stream["urls"][0]
+                is_live = self.stream.testStream(url)
+                self.updateChannelButtonColor(channel["id"], is_live)
+            else:
+                # Update button to red if no URLs are available
+                self.updateChannelButtonColor(channel["id"], False)
+
+        for channel in channels:
+            thread = threading.Thread(target=test_channel, args=(channel,), daemon=True)
+            thread.start()
+
+    def updateChannelButtonColor(self, channel_id, is_live):
+        button = self.channel_buttons.get(channel_id)
+        if button:
+            button.setStyleSheet("background-color: green;" if is_live else "background-color: red;")
 
     def onRightClick(self, pos):
         """Handle right-click event to return to categories."""
