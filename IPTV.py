@@ -20,7 +20,7 @@ import mpv
 
 class Stream:
     def __init__(self):
-        self.baseURL = "https://a501.variety-buy.store/api/"
+        self.baseURL = "https://a502.variety-buy.store/api/"
         self.session = requests.session()
         self.session.headers = {
             "User-Agent": "okhttp/3.12.8",
@@ -57,7 +57,7 @@ class Stream:
         headers = {
             "User-Agent": "okhttp/3.14.9"
         }
-        url = f"https://a501.variety-buy.store/api/channel/{channel}"
+        url = f"https://a502.variety-buy.store/api/channel/{channel}"
         r = self.session.get(url, headers=headers)
         stream = {}
         try:
