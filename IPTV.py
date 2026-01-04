@@ -20,10 +20,10 @@ import mpv
 
 class Stream:
     def __init__(self):
-        self.baseURL = "https://a502.variety-buy.store/api/"
+        self.baseURL = "https://a2.apk-api.com/api/"
         self.session = requests.session()
         self.session.headers = {
-            "User-Agent": "okhttp/3.12.8",
+            "user-agent": "okhttp/4.12.0",
             "accept": "application/json"
         }
 
@@ -55,9 +55,9 @@ class Stream:
 
     def getStream(self, channel):
         headers = {
-            "User-Agent": "okhttp/3.14.9"
+            "User-Agent": "okhttp/4.12.0"
         }
-        url = f"https://a502.variety-buy.store/api/channel/{channel}"
+        url = f"https://a2.apk-api.com/api/channel/{channel}"
         r = self.session.get(url, headers=headers)
         stream = {}
         try:
@@ -70,9 +70,12 @@ class Stream:
         except:
             return {"urls": [], "User-Agent": ""}
 
-    def testStream(self, url):
+    def testStream(self, url, user_agent):
         try:
-            response = requests.get(url, stream=True, timeout=5)
+            headers = {
+                "User-Agent": user_agent
+            }
+            response = requests.get(url, headers=headers, stream=True, timeout=5)
             return response.status_code == 200
         except requests.RequestException:
             return False
@@ -186,8 +189,7 @@ class MainWindow(QMainWindow):
         def test_channel(channel):
             stream = self.stream.getStream(channel["id"])
             if stream["urls"]:
-                url = stream["urls"][0]
-                is_live = self.stream.testStream(url)
+                is_live = self.stream.testStream(stream["urls"][0], stream["User-Agent"])
                 self.updateChannelButtonColor(channel["id"], is_live)
             else:
                 # Update button to red if no URLs are available
