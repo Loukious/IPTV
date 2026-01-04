@@ -31,7 +31,7 @@ jobs:
       - name: Download and Extract mpv DLL
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20241125/mpv-dev-x86_64-v3-20241125-git-8464ba4.7z" -OutFile "mpv-dev.7z"
+          Invoke-WebRequest -Uri "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20260104/mpv-dev-x86_64-v3-20260104-git-a3350e2.7z" -OutFile "mpv-dev.7z"
           & 7z x mpv-dev.7z -o"mpv-dev"
           New-Item -ItemType Directory -Path "Libs"
           Copy-Item -Path "mpv-dev/libmpv-2.dll" -Destination "Libs/"
